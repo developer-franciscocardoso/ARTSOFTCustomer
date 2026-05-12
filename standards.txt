@@ -1,0 +1,596 @@
+# Reusable PHP Package Structure Plan
+
+## Phase 1 — Define the Goal
+
+Define clearly:
+
+- What the package does
+- What inputs it accepts
+- What outputs it produces
+- What external dependencies exist
+- What parts should be customizable
+- Which PHP versions are supported
+
+Example:
+
+Purpose:
+Normalize and process accounting/customer/order data.
+
+Inputs:
+- CreateCustomerDTO
+- UpdateCustomerDTO
+- DeleteCustomerDTO
+
+Outputs:
+- ResultDTO
+- ErrorDTO
+
+External dependency:
+- ERP connector
+- API client
+- Database provider
+
+Supported:
+- PHP 8.2+
+
+--------------------------------------------------
+
+# Phase 2 — Create Package Structure
+
+Create a standalone repository.
+
+Recommended structure:
+
+package-name/
+│
+├── src/
+│   ├── Contracts/
+│   ├── DTO/
+│   │   ├── Input/
+│   │   └── Output/
+│   ├── Exceptions/
+│   ├── Services/
+│   ├── Validators/
+│   ├── Enums/
+│   ├── Support/
+│   └── Traits/
+│
+├── tests/
+│
+├── docs/
+│
+├── examples/
+│
+├── composer.json
+├── README.md
+├── phpunit.xml
+├── phpstan.neon
+└── .gitignore
+
+--------------------------------------------------
+
+# Phase 3 — Configure Composer
+
+Create composer.json.
+
+Minimum:
+
+{
+    "name": "vendor/package-name",
+    "description": "Reusable processing package",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Vendor\\Package\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vendor\\Package\\Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11",
+        "phpstan/phpstan": "^1.12"
+    }
+}
+
+Then:
+
+composer install
+
+--------------------------------------------------
+
+# Phase 4 — Create Interfaces
+
+## Goal
+
+Define contracts.
+
+Never force developers to use concrete implementations.
+
+--------------------------------------------------
+
+## Create Main Interface
+
+Example:
+
+namespace Vendor\Package\Contracts;
+
+use Vendor\Package\DTO\Input\BaseInputDTO;
+use Vendor\Package\DTO\Output\ResultDTO;
+
+interface ProcessorInterface
+{
+    public function process(BaseInputDTO $dto): ResultDTO;
+}
+
+--------------------------------------------------
+
+## Create External Dependency Interface
+
+Example:
+
+namespace Vendor\Package\Contracts;
+
+interface ExternalConnectorInterface
+{
+    public function send(array $payload): array;
+}
+
+This is critical.
+
+Every project can implement its own connector.
+
+--------------------------------------------------
+
+# Phase 5 — Create DTOs
+
+## Goal
+
+Standardize data exchange.
+
+--------------------------------------------------
+
+# Input DTOs
+
+Create one DTO per input type.
+
+Example:
+
+DTO/
+└── Input/
+    ├── CreateCustomerDTO.php
+    ├── UpdateCustomerDTO.php
+    └── DeleteCustomerDTO.php
+
+Example:
+
+final class CreateCustomerDTO
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+    ) {}
+}
+
+--------------------------------------------------
+
+# Output DTOs
+
+Example:
+
+DTO/
+└── Output/
+    ├── ResultDTO.php
+    ├── ErrorDTO.php
+    └── ValidationResultDTO.php
+
+Example:
+
+final class ResultDTO
+{
+    public function __construct(
+        public readonly bool $success,
+        public readonly ?array $data = null,
+        public readonly ?string $message = null,
+    ) {}
+}
+
+--------------------------------------------------
+
+# Phase 6 — Create Exceptions
+
+Never throw generic exceptions.
+
+Create package exceptions.
+
+Example:
+
+Exceptions/
+├── PackageException.php
+├── ValidationException.php
+├── ConnectorException.php
+└── ProcessingException.php
+
+Base:
+
+class PackageException extends Exception
+{
+}
+
+Then extend it.
+
+--------------------------------------------------
+
+# Phase 7 — Create Validators
+
+Avoid validation chaos inside services.
+
+Example:
+
+Validators/
+├── CustomerValidator.php
+└── OrderValidator.php
+
+Example:
+
+final class CustomerValidator
+{
+    public static function validate(CreateCustomerDTO $dto): void
+    {
+        if ($dto->email === '') {
+            throw new ValidationException('Email required');
+        }
+    }
+}
+
+--------------------------------------------------
+
+# Phase 8 — Implement Main Service
+
+Example:
+
+Services/
+└── Processor.php
+
+Example:
+
+final class Processor implements ProcessorInterface
+{
+    public function __construct(
+        private ExternalConnectorInterface $connector
+    ) {
+    }
+
+    public function process(BaseInputDTO $dto): ResultDTO
+    {
+        // logic
+    }
+}
+
+--------------------------------------------------
+
+# Phase 9 — Avoid Framework Coupling
+
+DO NOT use:
+
+Illuminate\Http\Request
+Eloquent
+Facades
+Laravel Collections
+
+Use only:
+
+DTOs
+arrays
+scalars
+PSR interfaces
+DateTimeInterface
+
+This is extremely important for portability.
+
+--------------------------------------------------
+
+# Phase 10 — Add Enums
+
+If values are finite:
+
+Bad:
+
+$status = 'completed';
+
+Good:
+
+enum StatusEnum: string
+{
+    case COMPLETED = 'completed';
+    case FAILED = 'failed';
+}
+
+Useful for:
+- statuses
+- operation types
+- environments
+- modes
+
+--------------------------------------------------
+
+# Phase 11 — Add PHPDoc
+
+Document:
+- methods
+- DTOs
+- exceptions
+- parameters
+- return types
+
+Example:
+
+/**
+ * Processes customer creation.
+ *
+ * @throws ValidationException
+ * @throws ConnectorException
+ */
+
+--------------------------------------------------
+
+# Phase 12 — Add README
+
+Critical for developer adoption.
+
+Include:
+
+Installation
+Usage
+Examples
+DTOs
+Interfaces
+Exceptions
+Configuration
+Testing
+
+--------------------------------------------------
+
+# Phase 13 — Add Examples Folder
+
+Very important.
+
+Create:
+
+examples/
+├── basic.php
+├── advanced.php
+└── custom_connector.php
+
+Developers copy examples first.
+
+--------------------------------------------------
+
+# Phase 14 — Add Unit Tests
+
+Structure:
+
+tests/
+├── Unit/
+├── Feature/
+└── Mocks/
+
+Test:
+- DTO validation
+- service logic
+- exceptions
+- connectors
+- edge cases
+
+--------------------------------------------------
+
+# Phase 15 — Add Static Analysis
+
+Install PHPStan.
+
+Run:
+
+vendor/bin/phpstan analyse
+
+Use high strictness.
+
+This massively improves package quality.
+
+--------------------------------------------------
+
+# Phase 16 — Add Coding Standards
+
+Use:
+- Laravel Pint
+OR
+- PHP CS Fixer
+
+Consistency matters for distributed code.
+
+--------------------------------------------------
+
+# Phase 17 — Add Versioning
+
+Use semantic versioning.
+
+1.0.0
+
+Rules:
+
+MAJOR.MINOR.PATCH
+
+Example:
+
+2.0.0 → breaking changes
+1.1.0 → new features
+1.0.1 → bug fixes
+
+--------------------------------------------------
+
+# Phase 18 — Define Public API Carefully
+
+Everything public becomes maintenance burden.
+
+Prefer:
+
+private
+protected
+internal
+final classes
+readonly DTOs
+
+Expose only what developers need.
+
+--------------------------------------------------
+
+# Phase 19 — Decide Extension Strategy
+
+Choose:
+
+## Option A — Highly extensible
+
+Use:
+- interfaces
+- abstract classes
+- hooks
+
+Useful for SDKs/frameworks.
+
+--------------------------------------------------
+
+## Option B — Strict/simple
+
+Use:
+- final classes
+- immutable DTOs
+- minimal inheritance
+
+Usually better.
+
+--------------------------------------------------
+
+# Phase 20 — Distribution
+
+## Option A — Private Git repository
+
+Install:
+
+composer require vendor/package
+
+--------------------------------------------------
+
+## Option B — Packagist
+
+Publish publicly.
+
+--------------------------------------------------
+
+# Phase 21 — Add CI/CD
+
+Recommended:
+
+GitHub Actions.
+
+Automate:
+- tests
+- PHPStan
+- formatting
+
+Example workflow:
+
+on push:
+- composer install
+- run tests
+- run phpstan
+- run pint
+
+--------------------------------------------------
+
+# Phase 22 — Add Documentation Standards
+
+Inside classes:
+
+/**
+ * @internal
+ */
+
+For internal-only methods.
+
+--------------------------------------------------
+
+For deprecated methods:
+
+/**
+ * @deprecated
+ */
+
+--------------------------------------------------
+
+# Phase 23 — Create Stable Contracts
+
+The MOST important rule:
+
+Once developers depend on:
+- DTOs
+- interfaces
+- exceptions
+
+avoid breaking them.
+
+These become your package contracts.
+
+--------------------------------------------------
+
+# Final Recommended Architecture
+
+Contracts/
+    Interfaces only
+
+DTO/
+    Immutable data objects
+
+Services/
+    Main logic
+
+Validators/
+    Validation rules
+
+Exceptions/
+    Typed exceptions
+
+Enums/
+    Constant-safe values
+
+Tests/
+    Automated verification
+
+Docs/
+    Developer documentation
+
+--------------------------------------------------
+
+# Recommended Minimum Standards
+
+Mandatory:
+- PHP 8.2+
+- strict_types
+- DTOs
+- interfaces
+- typed properties
+- readonly
+- tests
+- phpstan
+- composer
+
+Strongly recommended:
+- enums
+- CI/CD
+- examples
+- semantic versioning
+- immutable architecture
