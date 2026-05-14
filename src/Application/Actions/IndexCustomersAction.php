@@ -26,18 +26,16 @@ final readonly class IndexCustomersAction
             throw new InvalidPayloadException('Estrutura inválida para indexação de clientes.');
         }
 
-        $limit = (int) ($criteria['limit'] ?? 50);
-        $filial = (int) ($criteria['filial'] ?? 0);
+        $limit = 0;
+        if (array_key_exists('limit', $criteria) && $criteria['limit'] !== null && $criteria['limit'] !== '') {
+            $limit = (int) $criteria['limit'];
 
-        if ($limit <= 0 || $limit > 1000) {
-            throw new InvalidPayloadException('O campo limit deve estar entre 1 e 1000.');
+            if ($limit <= 0 || $limit > 1000) {
+                throw new InvalidPayloadException('O campo limit deve estar entre 1 e 1000.');
+            }
         }
 
-        if ($filial < 0) {
-            throw new InvalidPayloadException('O campo filial não pode ser negativo.');
-        }
-
-        $customers = $this->support->indexCustomers($limit, $filial);
+        $customers = $this->support->indexCustomers($limit);
 
         return new CustomerIndexResult(
             success: true,

@@ -30,8 +30,7 @@ Identifier-based operations (`find` and `delete`) accept:
 
 `index` accepts optional filters:
 
-- `limit` (int, default `50`, min `1`, max `1000`)
-- `filial` (int, default `0`)
+- `limit` (int, optional; when omitted returns all available rows, when provided must be between `1` and `1000`)
 
 ## Response Contract
 
