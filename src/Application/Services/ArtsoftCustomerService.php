@@ -17,7 +17,7 @@ use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Output\CustomerOperationResult;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Output\CustomerRecord;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Support\CustomerServiceSupport;
 
-final class InsertCustomerService implements CustomerProcessorInterface
+final class ArtsoftCustomerService implements CustomerProcessorInterface
 {
     private readonly CustomerServiceSupport $support;
 
@@ -132,5 +132,37 @@ final class InsertCustomerService implements CustomerProcessorInterface
     public function updateAddresses(CustomerInputData $customer): bool
     {
         return $this->support->updateAddresses($customer);
+    }
+
+    /**
+     * @return array<int, array{alias: string, form: string}>
+     */
+    public function getTerFchFields(?string $search = null): array
+    {
+        return $this->support->getTerFchFields($search);
+    }
+
+    public function hasTerFchField(string $alias): bool
+    {
+        return $this->support->hasTerFchField($alias);
+    }
+
+    /**
+     * @param array<int, string> $aliases
+     */
+    public function buildTerFchDefcol(array $aliases): string
+    {
+        return $this->support->buildTerFchDefcol($aliases);
+    }
+
+    /**
+     * @param array<int, string> $aliases
+     */
+    public function buildTerFchListQueryPayload(
+        array $aliases,
+        string $query = 'TerFch|Autoinc=1:999999999',
+        ?string $where = null
+    ): string {
+        return $this->support->buildTerFchListQueryPayload($aliases, $query, $where);
     }
 }

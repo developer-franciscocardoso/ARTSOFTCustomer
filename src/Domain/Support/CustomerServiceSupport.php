@@ -20,6 +20,8 @@ use Throwable;
 
 final class CustomerServiceSupport
 {
+    private readonly TerFchFieldCatalog $terFchFieldCatalog;
+
     private string $nationalCountry;
 
     /**
@@ -35,9 +37,47 @@ final class CustomerServiceSupport
     public function __construct(
         private readonly ?CustomerConnectorInterface $connector = null,
         ?array $rules = null,
+        ?TerFchFieldCatalog $terFchFieldCatalog = null,
     ) {
+        $this->terFchFieldCatalog = $terFchFieldCatalog ?? new TerFchFieldCatalog();
         $configuredRules = $rules ?? $this->loadRulesFromConfig();
         $this->applyRules($configuredRules);
+    }
+
+    /**
+     * @return array<int, array{alias: string, form: string}>
+     */
+    public function getTerFchFields(?string $search = null): array
+    {
+        if ($search === null) {
+            return $this->terFchFieldCatalog->all();
+        }
+
+        return $this->terFchFieldCatalog->search($search);
+    }
+
+    public function hasTerFchField(string $alias): bool
+    {
+        return $this->terFchFieldCatalog->has($alias);
+    }
+
+    /**
+     * @param array<int, string> $aliases
+     */
+    public function buildTerFchDefcol(array $aliases): string
+    {
+        return $this->terFchFieldCatalog->buildDefcol($aliases);
+    }
+
+    /**
+     * @param array<int, string> $aliases
+     */
+    public function buildTerFchListQueryPayload(
+        array $aliases,
+        string $query = 'TerFch|Autoinc=1:999999999',
+        ?string $where = null
+    ): string {
+        return $this->terFchFieldCatalog->buildListQueryPayload($aliases, $query, $where);
     }
 
     /**

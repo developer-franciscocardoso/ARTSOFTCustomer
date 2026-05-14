@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use FranciscoCardoso\ARTSOFTCustomer\Application\Services\InsertCustomerService;
+use FranciscoCardoso\ARTSOFTCustomer\Application\Services\ArtsoftCustomerService;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Contracts\CustomerConnectorInterface;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -32,7 +32,7 @@ final class ExampleConnector implements CustomerConnectorInterface
     }
 }
 
-$service = new InsertCustomerService(new ExampleConnector());
+$service = new ArtsoftCustomerService(new ExampleConnector());
 
 $result = $service->find([
     'cliente' => [

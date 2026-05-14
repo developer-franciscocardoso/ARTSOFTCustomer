@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace FranciscoCardoso\ARTSOFTCustomer\Tests\Unit;
 
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\InvalidPayloadException;
-use FranciscoCardoso\ARTSOFTCustomer\Application\Services\InsertCustomerService;
+use FranciscoCardoso\ARTSOFTCustomer\Application\Services\ArtsoftCustomerService;
 use FranciscoCardoso\ARTSOFTCustomer\Tests\Mocks\FakeCustomerConnector;
 use PHPUnit\Framework\TestCase;
 
-final class InsertCustomerServiceTest extends TestCase
+final class ArtsoftCustomerServiceTest extends TestCase
 {
     public function testCreateThrowsWhenRequiredFieldIsMissing(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([]));
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([]));
 
         $this->expectException(InvalidPayloadException::class);
 
@@ -31,7 +31,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testCreateReturnsFailureWhenCustomerAlreadyExists(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => [
                 'success' => true,
                 'data' => '<root><row><id>10</id><nif>123456789</nif><pais>PT</pais><clinumero>55</clinumero><email>cliente@example.com</email><nome>Cliente Teste</nome><morada>Rua Central</morada><codpostal>1000-100</codpostal><localidade>Lisboa</localidade><filial>0</filial></row></root>',
@@ -63,7 +63,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testCreateAcceptsFlatPayloadWithoutClienteWrapper(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => [
                 'success' => true,
                 'data' => '<root><row><id>10</id><nif>123456789</nif><pais>PT</pais><clinumero>55</clinumero><email>cliente@example.com</email><nome>Cliente Teste</nome><morada>Rua Central</morada><codpostal>1000-100</codpostal><localidade>Lisboa</localidade><filial>0</filial></row></root>',
@@ -91,7 +91,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testFindReturnsCustomerWhenItExists(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => [
                 'success' => true,
                 'data' => '<root><row><id>10</id><nif>123456789</nif><pais>PT</pais><clinumero>55</clinumero><email>cliente@example.com</email><nome>Cliente Teste</nome><morada>Rua Central</morada><codpostal>1000-100</codpostal><localidade>Lisboa</localidade><filial>0</filial></row></root>',
@@ -118,7 +118,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testFindAllowsNifPaisCompositeKeyWithDefaultFilial(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => static function (string $payload): array {
                 self::assertStringContainsString('$isequal(%TerFch.Ter.NIF_UE,PT123456789)', $payload);
                 self::assertStringContainsString('$isequal(%TerFch.Ter.Filial,0)', $payload);
@@ -151,7 +151,7 @@ final class InsertCustomerServiceTest extends TestCase
     {
         $queryCalls = 0;
 
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => static function () use (&$queryCalls): array {
                 $queryCalls++;
 
@@ -186,7 +186,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testIndexReturnsSummarizedCustomersWithLimit(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => [
                 'success' => true,
                 'data' => '<root>'
@@ -208,7 +208,7 @@ final class InsertCustomerServiceTest extends TestCase
 
     public function testIndexWithoutLimitReturnsAllRows(): void
     {
-        $service = new InsertCustomerService(new FakeCustomerConnector([
+        $service = new ArtsoftCustomerService(new FakeCustomerConnector([
             'Queries/Query' => [
                 'success' => true,
                 'data' => '<root>'

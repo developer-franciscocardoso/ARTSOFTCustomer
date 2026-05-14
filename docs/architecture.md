@@ -10,7 +10,7 @@ This package follows a layered architecture.
 
 ## Main Flow
 
-1. `InsertCustomerService` receives command payload.
+1. `ArtsoftCustomerService` receives command payload.
 2. Action class (`CreateCustomerAction`, `UpdateCustomerAction`, etc.) coordinates operation steps.
 3. `CustomerServiceSupport` contains shared domain workflows (mapping, querying, persistence checks).
 4. `CustomerConnectorInterface` is used to call external ARTSOFT endpoints.

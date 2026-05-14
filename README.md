@@ -40,7 +40,7 @@ For local workspace development with sibling packages:
 
 declare(strict_types=1);
 
-use FranciscoCardoso\ARTSOFTCustomer\Application\Services\InsertCustomerService;
+use FranciscoCardoso\ARTSOFTCustomer\Application\Services\ArtsoftCustomerService;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Contracts\CustomerConnectorInterface;
 
 require __DIR__ . '/vendor/autoload.php';
@@ -54,7 +54,7 @@ final class MyConnector implements CustomerConnectorInterface
         }
 }
 
-$service = new InsertCustomerService(new MyConnector());
+$service = new ArtsoftCustomerService(new MyConnector());
 $result = $service->find(['cliente' => ['nif' => '123456789', 'pais' => 'PT']]);
 
 print_r($result->toArray());
@@ -137,6 +137,40 @@ Expected output shape for index example:
 - `customers` (array)
 - `total` (int)
 - `message` (string)
+
+## TerFch Field Catalog
+
+The package now bundles a TerFch field catalog at `resources/terfch_fields.txt`.
+
+Use these helper methods from `ArtsoftCustomerService` to consult fields:
+
+```php
+$service = new ArtsoftCustomerService();
+
+// Full list: [{ alias, form }, ...]
+$all = $service->getTerFchFields();
+
+// Search by alias or form expression
+$matches = $service->getTerFchFields('nif');
+
+// Validate one field
+$exists = $service->hasTerFchField('ter_nif_ue'); // true/false
+
+// Build <defcol> body safely from known aliases
+$defcol = $service->buildTerFchDefcol([
+  'ter_nome',
+  'ter_email',
+  'pais_abrv',
+]);
+
+// Build full Queries/Query payload (query + defcol)
+$payload = $service->buildTerFchListQueryPayload(
+  aliases: ['ter_nome', 'ter_email', 'pais_abrv'],
+  where: '$isequal(%TerFch.Ter.Filial,0)'
+);
+```
+
+This approach lets you keep field definitions centralized and avoid typos when creating custom query payloads.
 
 ## Tooling
 
