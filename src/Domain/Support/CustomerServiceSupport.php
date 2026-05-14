@@ -361,10 +361,9 @@ final class CustomerServiceSupport
     /**
      * @return CustomerSummary[]
      */
-    public function indexCustomers(int $limit = 50, int $filial = 0): array
+    public function indexCustomers(int $limit = 0): array
     {
-        $query = '<i type="list" query="TerFch|Autoinc=1:999999999 |? '
-            . '$isequal(%TerFch.Ter.Filial,' . $filial . ')">'
+        $query = '<i type="list" query="TerFch|Autoinc=1:999999999 ">'
             . '<defcol>'
             . '<id form="%TerFch.Div.NrFicha"/>'
             . '<nif form="%TerFch.ter.Nridfisc"/>'
@@ -393,11 +392,12 @@ final class CustomerServiceSupport
         if (!is_array($nodes) || $nodes === []) {
             return [];
         }
-
-        $limitedNodes = array_slice($nodes, 0, $limit);
+        if ($limit > 0) {
+            $nodes = array_slice($nodes, 0, $limit);
+        }
         $customers = [];
 
-        foreach ($limitedNodes as $customerXml) {
+        foreach ($nodes as $customerXml) {
             $customers[] = new CustomerSummary(
                 id: (int) $customerXml->id,
                 nif: (string) $customerXml->nif,
