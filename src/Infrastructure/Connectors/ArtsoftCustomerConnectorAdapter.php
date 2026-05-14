@@ -23,8 +23,7 @@ final class ArtsoftCustomerConnectorAdapter implements CustomerConnectorInterfac
         ?ArtsoftServiceInterface $service = null,
         ?string $company = null,
         ?array $artsoftConfig = null,
-    )
-    {
+    ) {
         $this->service = $service ?? $this->buildDefaultService($company, $artsoftConfig);
     }
 
@@ -113,9 +112,5 @@ final class ArtsoftCustomerConnectorAdapter implements CustomerConnectorInterfac
         $encoded = json_encode($data);
 
         return is_string($encoded) ? $encoded : '';
-    }
-}
-
-        return new $serviceClass();
     }
 }
