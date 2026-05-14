@@ -8,6 +8,7 @@ use FranciscoCardoso\ARTSOFTCustomer\Domain\Contracts\CustomerConnectorInterface
 use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Input\CustomerAddressData;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Input\CustomerInputData;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Output\CustomerRecord;
+use FranciscoCardoso\ARTSOFTCustomer\Domain\DTO\Output\CustomerSummary;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\ConnectorException;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\CustomerPersistenceException;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\InvalidConfigurationException;
@@ -358,6 +359,60 @@ final class CustomerServiceSupport
     }
 
     /**
+     * @return CustomerSummary[]
+     */
+    public function indexCustomers(int $limit = 50, int $filial = 0): array
+    {
+        $query = '<i type="list" query="TerFch|Autoinc=1:999999999 |? '
+            . '$isequal(%TerFch.Ter.Filial,' . $filial . ')">'
+            . '<defcol>'
+            . '<id form="%TerFch.Div.NrFicha"/>'
+            . '<nif form="%TerFch.ter.Nridfisc"/>'
+            . '<pais form="%TerFch.pais.abrv"/>'
+            . '<clinumero form="%TerFch.cli.numero"/>'
+            . '<email form="%TerFch.ter.email"/>'
+            . '<nome form="%TerFch.ter.nome"/>'
+            . '<filial form="%TerFch.ter.filial"/>'
+            . '</defcol>'
+            . '</i>';
+
+        $result = $this->connector()->request('Queries/Query', $query);
+
+        if (!$result['success']) {
+            throw new ConnectorException('Ocorreu um erro ao indexar clientes: ' . ($result['message'] ?? 'resposta inválida'));
+        }
+
+        $xml = $this->loadXml($result['data'] ?? '');
+
+        if ($xml === null) {
+            return [];
+        }
+
+        $nodes = $xml->xpath('//row');
+
+        if (!is_array($nodes) || $nodes === []) {
+            return [];
+        }
+
+        $limitedNodes = array_slice($nodes, 0, $limit);
+        $customers = [];
+
+        foreach ($limitedNodes as $customerXml) {
+            $customers[] = new CustomerSummary(
+                id: (int) $customerXml->id,
+                nif: (string) $customerXml->nif,
+                pais: (string) $customerXml->pais,
+                clinumero: (int) $customerXml->clinumero,
+                nome: (string) $customerXml->nome,
+                email: (string) $customerXml->email,
+                filial: (int) $customerXml->filial,
+            );
+        }
+
+        return $customers;
+    }
+
+    /**
      * @param array<string, mixed> $customerData
      */
     public function mapCustomer(array $customerData): CustomerInputData
@@ -502,6 +557,11 @@ final class CustomerServiceSupport
      */
     private function loadRulesFromConfig(): array
     {
+        $frameworkConfig = $this->loadRulesFromFrameworkConfig();
+        if ($frameworkConfig !== null) {
+            return $frameworkConfig;
+        }
+
         $configFile = __DIR__ . '/../../../config/customer.php';
 
         if (!is_file($configFile)) {
@@ -515,6 +575,20 @@ final class CustomerServiceSupport
         }
 
         return $loaded;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function loadRulesFromFrameworkConfig(): ?array
+    {
+        if (!function_exists('config')) {
+            return null;
+        }
+
+        $loaded = config('customer');
+
+        return is_array($loaded) ? $loaded : null;
     }
 
     /**

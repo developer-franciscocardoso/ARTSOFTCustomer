@@ -183,4 +183,27 @@ final class InsertCustomerServiceTest extends TestCase
         self::assertNull($result->customer);
         self::assertSame(1, $queryCalls);
     }
+
+    public function testIndexReturnsSummarizedCustomersWithLimit(): void
+    {
+        $service = new InsertCustomerService(new FakeCustomerConnector([
+            'Queries/Query' => [
+                'success' => true,
+                'data' => '<root>'
+                    . '<row><id>10</id><nif>123456789</nif><pais>PT</pais><clinumero>55</clinumero><email>cliente1@example.com</email><nome>Cliente 1</nome><filial>0</filial></row>'
+                    . '<row><id>11</id><nif>223456789</nif><pais>ES</pais><clinumero>56</clinumero><email>cliente2@example.com</email><nome>Cliente 2</nome><filial>0</filial></row>'
+                    . '</root>',
+            ],
+        ]));
+
+        $result = $service->index([
+            'limit' => 1,
+            'filial' => 0,
+        ]);
+
+        self::assertTrue($result->success);
+        self::assertSame(1, $result->total);
+        self::assertSame('Clientes listados com sucesso', $result->message);
+        self::assertSame('Cliente 1', $result->customers[0]->nome);
+    }
 }

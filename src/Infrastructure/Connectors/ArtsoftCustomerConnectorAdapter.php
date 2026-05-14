@@ -4,17 +4,28 @@ declare(strict_types=1);
 
 namespace FranciscoCardoso\ARTSOFTCustomer\Infrastructure\Connectors;
 
+use FranciscoCardoso\ArtsoftConnector\Artsoft;
+use FranciscoCardoso\ArtsoftConnector\Contracts\ArtsoftServiceInterface;
+use FranciscoCardoso\ArtsoftConnector\ServiceProviders\ArtsoftConnectorServiceProvider;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Contracts\CustomerConnectorInterface;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\ConnectorException;
 use FranciscoCardoso\ARTSOFTCustomer\Domain\Exceptions\InvalidConfigurationException;
+use Throwable;
 
 final class ArtsoftCustomerConnectorAdapter implements CustomerConnectorInterface
 {
-    private object $client;
+    private ArtsoftServiceInterface $service;
 
-    public function __construct(?object $client = null)
+    /**
+     * @param array<string, mixed>|null $artsoftConfig
+     */
+    public function __construct(
+        ?ArtsoftServiceInterface $service = null,
+        ?string $company = null,
+        ?array $artsoftConfig = null,
+    )
     {
-        $this->client = $client ?? $this->resolveDefaultClient();
+        $this->service = $service ?? $this->buildDefaultService($company, $artsoftConfig);
     }
 
     /**
@@ -22,27 +33,88 @@ final class ArtsoftCustomerConnectorAdapter implements CustomerConnectorInterfac
      */
     public function request(string $endpoint, string $payload): array
     {
-        if (!method_exists($this->client, 'doRequest')) {
-            throw new InvalidConfigurationException('O conector configurado não suporta o método doRequest.');
+        try {
+            $result = $this->service->request($endpoint, $payload);
+        } catch (Throwable $exception) {
+            throw new ConnectorException('Falha ao executar pedido ARTSOFT: ' . $exception->getMessage(), 0, $exception);
         }
 
-        $result = $this->client->doRequest($endpoint, $payload);
-
-        if (!is_array($result)) {
-            throw new ConnectorException('O conector devolveu uma resposta inválida.');
-        }
-
-        /** @var array{success: bool, data?: string, message?: string} */
-        return $result;
+        return [
+            'success' => $result->success,
+            'data' => $this->normalizeResponseData($result->data),
+            'message' => $result->error,
+        ];
     }
 
-    private function resolveDefaultClient(): object
+    /**
+     * @param array<string, mixed>|null $artsoftConfig
+     */
+    private function buildDefaultService(?string $company, ?array $artsoftConfig): ArtsoftServiceInterface
     {
-        $serviceClass = '\\App\\Http\\Services\\ArtsoftService';
+        $config = $artsoftConfig ?? $this->resolveArtsoftConfig();
 
-        if (!class_exists($serviceClass)) {
-            throw new InvalidConfigurationException('Nenhum conector foi fornecido e ArtsoftService não está disponível.');
+        try {
+            return Artsoft::create($config, $company);
+        } catch (Throwable $exception) {
+            throw new InvalidConfigurationException('Configuração inválida do ARTSOFT connector: ' . $exception->getMessage(), 0, $exception);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveArtsoftConfig(): array
+    {
+        $frameworkConfig = $this->resolveFrameworkConfig();
+        if ($frameworkConfig !== null) {
+            return $frameworkConfig;
+        }
+
+        $provider = new ArtsoftConnectorServiceProvider();
+        $loaded = require $provider->getSourceConfigPath();
+
+        if (!is_array($loaded)) {
+            throw new InvalidConfigurationException('A configuração do ARTSOFT connector deve devolver um array.');
+        }
+
+        return $loaded;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveFrameworkConfig(): ?array
+    {
+        if (!function_exists('config')) {
+            return null;
+        }
+
+        $config = config('artsoft');
+
+        return is_array($config) ? $config : null;
+    }
+
+    private function normalizeResponseData(mixed $data): string
+    {
+        if (is_string($data)) {
+            return $data;
+        }
+
+        if (!is_array($data)) {
+            return '';
+        }
+
+        foreach (['data', 'xml', 'response'] as $key) {
+            if (isset($data[$key]) && is_string($data[$key])) {
+                return $data[$key];
+            }
+        }
+
+        $encoded = json_encode($data);
+
+        return is_string($encoded) ? $encoded : '';
+    }
+}
 
         return new $serviceClass();
     }
